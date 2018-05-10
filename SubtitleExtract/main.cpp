@@ -1,6 +1,7 @@
 #include <iostream>
 
 #include "CommandLineParser.h"
+#include "Extractor.h"
 
 void usage() {
 	std::cout << "usage: SubtitleExtract --file <video_file> [--verbose|--from|--to|--threads]\n" 
@@ -19,6 +20,9 @@ int main(int argc, const char ** argv) {
 	}
 	auto from = parser.GetCommandLineParameterValue("from");
 	auto to = parser.GetCommandLineParameterValue("to");
+
+	Extractor extractor(file, 10000);//from, to);
+
 	std::cin.get();
 	return 0;
 }
