@@ -21,7 +21,7 @@ int main(int argc, const char ** argv) {
 	auto from = parser.GetCommandLineParameterValue("from");
 	auto to = parser.GetCommandLineParameterValue("to");
 
-	Extractor extractor(file, 10000);//from, to);
+	Extractor extractor(file, 200000);//from, to);
 
 	std::cin.get();
 	return 0;
