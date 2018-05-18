@@ -23,7 +23,6 @@ Extractor::Extractor(const std::string & videoFilePath, double from, double to)
 		throw 666;
 }
 
-
 Extractor::~Extractor()
 {
 }

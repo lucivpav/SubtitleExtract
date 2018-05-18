@@ -1,7 +1,9 @@
 #include "Detector.h"
 
-Detector::Detector(int dilationIterations)
-	:dilationIterations(dilationIterations)
+Detector::Detector(int dilationIterations, double minFraction, double positionFraction)
+	:	dilationIterations(dilationIterations),
+		minFraction(minFraction),
+		positionFraction(positionFraction)
 {
 }
 
@@ -9,9 +11,9 @@ Detector::~Detector()
 {
 }
 
-DetectResult Detector::Detect(const cv::Mat & image)
+DetectionResult Detector::Detect(const cv::Mat & image)
 {
-	DetectResult result;
+	DetectionResult result;
 	cv::Mat grayImage, preThreshImage, threshImage;
 	cv::cvtColor(image, grayImage, cv::COLOR_BGR2GRAY);
 	cv::threshold(grayImage, preThreshImage, 180, 255, cv::THRESH_BINARY);
@@ -26,5 +28,32 @@ DetectResult Detector::Detect(const cv::Mat & image)
 	for (auto contour : contours)
 		result.rectangles.push_back(cv::boundingRect(contour));
 
+	RemoveUnlikelyRectangles(result);
+
 	return result;
+}
+
+void Detector::RemoveUnlikelyRectangles(DetectionResult & detection)
+{
+	RemoveRectanglesOfUnlikelySize(detection);
+	RemoveRectanglesOfUnlikelyPosition(detection);
+}
+
+void Detector::RemoveRectanglesOfUnlikelySize(DetectionResult & detection)
+{
+	auto imageArea = detection.image.rows * detection.image.cols;
+	auto & rectangles = detection.rectangles;
+	auto newEnd = std::remove_if(rectangles.begin(), rectangles.end(), [=](auto & rect) {
+		return rect.area() < imageArea * minFraction;
+	});
+	rectangles.erase(newEnd, rectangles.end());
+}
+
+void Detector::RemoveRectanglesOfUnlikelyPosition(DetectionResult & detection) // TODO: extend by supporting subtitles on top too
+{
+	auto & rectangles = detection.rectangles;
+	auto newEnd = std::remove_if(rectangles.begin(), rectangles.end(), [=](auto & rect) {
+		return rect.y < positionFraction;
+	});
+	rectangles.erase(newEnd, rectangles.end());
 }
