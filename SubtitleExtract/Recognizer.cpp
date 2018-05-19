@@ -1,7 +1,5 @@
 #include "Recognizer.h"
 
-#include <leptonica/allheaders.h>
-
 Recognizer::Recognizer()
 	:api(new tesseract::TessBaseAPI())
 {
@@ -9,7 +7,6 @@ Recognizer::Recognizer()
 	if (ret != 0)
 		throw "Could not initialize tesseract (code " + std::to_string(ret) + ").";
 }
-
 
 Recognizer::~Recognizer()
 {
