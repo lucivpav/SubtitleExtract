@@ -2,6 +2,7 @@
 
 #include <string>
 #include "Detector.h"
+#include "Recognizer.h"
 
 class Extractor
 {
@@ -10,5 +11,6 @@ public:
 	~Extractor();
 private:
 	Detector detector;
+	Recognizer recognizer;
 };
 

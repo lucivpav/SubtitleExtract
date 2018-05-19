@@ -23,5 +23,6 @@ int main(int argc, const char ** argv) {
 
 	Extractor extractor(file, 200000);//from, to);
 
+	std::cin.get();
 	return 0;
 }

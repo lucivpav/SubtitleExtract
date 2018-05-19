@@ -14,14 +14,14 @@ public:
 	Detector(int dilationIterations = 9, double minFraction = 0.05, double positionFraction = 0.3); // TODO: maxFraction
 	~Detector();
 
-	DetectionResult Detect(const cv::Mat & image);
+	DetectionResult Detect(const cv::Mat & image) const;
 private:
 	int dilationIterations;
 	double minFraction;
 	double positionFraction;
 
-	void RemoveUnlikelyRectangles(DetectionResult & detection);
-	void RemoveRectanglesOfUnlikelySize(DetectionResult & detection);
-	void RemoveRectanglesOfUnlikelyPosition(DetectionResult & detection);
+	void RemoveUnlikelyRectangles(DetectionResult & detection) const;
+	void RemoveRectanglesOfUnlikelySize(DetectionResult & detection) const;
+	void RemoveRectanglesOfUnlikelyPosition(DetectionResult & detection) const;
 };
 
