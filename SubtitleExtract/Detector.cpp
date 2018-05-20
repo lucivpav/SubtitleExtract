@@ -14,10 +14,11 @@ Detector::~Detector()
 DetectionResult Detector::Detect(const cv::Mat & image, const std::string & id) const
 {
 	DetectionResult result;
-	cv::Mat grayImage, preThreshImage, dilatedImage;
+	cv::Mat grayImage, preThreshImage, dilatedImage, threshImage;
 	cv::cvtColor(image, grayImage, cv::COLOR_BGR2GRAY);
 	cv::threshold(grayImage, preThreshImage, 245, 255, cv::THRESH_BINARY);
-	cv::bitwise_and(grayImage, grayImage, result.image, preThreshImage);
+	cv::bitwise_and(grayImage, grayImage, threshImage, preThreshImage);
+	cv::medianBlur(threshImage, result.image, 3);
 
 	auto kernel = cv::getStructuringElement(cv::MORPH_CROSS, cv::Size(3, 3));
 	cv::dilate(result.image, dilatedImage, kernel, cv::Point(-1, -1), dilationIterations);
