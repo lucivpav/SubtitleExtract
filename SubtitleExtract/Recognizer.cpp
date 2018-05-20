@@ -15,7 +15,6 @@ Recognizer::~Recognizer()
 std::string Recognizer::Recognize(cv::Mat & image) const
 {
 	api->SetImage(image.data, image.size().width, image.size().height, image.channels(), (int)image.step1());
-	auto xxx = api->GetUTF8Text();
 	std::unique_ptr<char> textPtr(api->GetUTF8Text());
 	std::string text(textPtr.get());
 	return text;

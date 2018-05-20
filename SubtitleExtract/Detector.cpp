@@ -11,12 +11,12 @@ Detector::~Detector()
 {
 }
 
-DetectionResult Detector::Detect(const cv::Mat & image) const
+DetectionResult Detector::Detect(const cv::Mat & image, const std::string & id) const
 {
 	DetectionResult result;
 	cv::Mat grayImage, preThreshImage, dilatedImage;
 	cv::cvtColor(image, grayImage, cv::COLOR_BGR2GRAY);
-	cv::threshold(grayImage, preThreshImage, 180, 255, cv::THRESH_BINARY);
+	cv::threshold(grayImage, preThreshImage, 245, 255, cv::THRESH_BINARY);
 	cv::bitwise_and(grayImage, grayImage, result.image, preThreshImage);
 
 	auto kernel = cv::getStructuringElement(cv::MORPH_CROSS, cv::Size(3, 3));
@@ -27,6 +27,16 @@ DetectionResult Detector::Detect(const cv::Mat & image) const
 
 	for (auto contour : contours)
 		result.rectangles.push_back(cv::boundingRect(contour));
+
+	if (id != "")
+	{
+		const std::string dir = "extractions/";
+		auto rectsImage = image.clone();
+		for (auto rect : result.rectangles)
+			cv::rectangle(rectsImage, rect, cv::Scalar(255, 0, 255));
+		if (!cv::imwrite(dir + id + "_prefilter_rects.png", rectsImage))
+			throw 666;
+	}
 
 	RemoveUnlikelyRectangles(result);
 

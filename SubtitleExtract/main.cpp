@@ -18,10 +18,25 @@ int main(int argc, const char ** argv) {
 		std::cin.get();
 		return 1;
 	}
-	auto from = parser.GetCommandLineParameterValue("from");
-	auto to = parser.GetCommandLineParameterValue("to");
+	auto fromStr = parser.GetCommandLineParameterValue("from");
+	auto toStr = parser.GetCommandLineParameterValue("to"); // TODO
 
-	Extractor extractor(file, 200000);//from, to);
+	Extractor extractor;
+	double from = 200000;
+	double to = 210000;
+	bool debug = true;
+
+	if ( !debug )
+		extractor.Extract(file, "subtitles.srt", from, to);
+	else
+	{
+		cv::VideoCapture video(file);
+		video.set(cv::CAP_PROP_POS_MSEC, 209000);
+		cv::Mat image;
+		if (!video.read(image))
+			throw 666;
+		std::cout << "extracted: " << extractor.ExtractFromImage(image, "bla") << std::endl;
+	}
 
 	std::cin.get();
 	return 0;
