@@ -22,8 +22,8 @@ int main(int argc, const char ** argv) {
 	auto toStr = parser.GetCommandLineParameterValue("to"); // TODO
 
 	Extractor extractor;
-	double from = 200000;
-	double to = 220000;
+	double from = 240000;
+	double to = 250000;
 	bool debug = false;
 
 	if ( !debug )

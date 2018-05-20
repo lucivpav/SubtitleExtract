@@ -39,15 +39,15 @@ DetectionResult Detector::Detect(const cv::Mat & image, const std::string & id) 
 			throw 666;
 	}
 
-	RemoveUnlikelyRectangles(result);
+	RemoveUnlikelyRectangles(result, image.size().height);
 
 	return result;
 }
 
-void Detector::RemoveUnlikelyRectangles(DetectionResult & detection) const
+void Detector::RemoveUnlikelyRectangles(DetectionResult & detection, double imageHeight) const
 {
 	RemoveRectanglesOfUnlikelySize(detection);
-	RemoveRectanglesOfUnlikelyPosition(detection);
+	RemoveRectanglesOfUnlikelyPosition(detection, imageHeight);
 }
 
 void Detector::RemoveRectanglesOfUnlikelySize(DetectionResult & detection) const
@@ -60,11 +60,11 @@ void Detector::RemoveRectanglesOfUnlikelySize(DetectionResult & detection) const
 	rectangles.erase(newEnd, rectangles.end());
 }
 
-void Detector::RemoveRectanglesOfUnlikelyPosition(DetectionResult & detection) const // TODO: extend by supporting subtitles on top too
+void Detector::RemoveRectanglesOfUnlikelyPosition(DetectionResult & detection, double imageHeight) const // TODO: extend by supporting subtitles on top too
 {
 	auto & rectangles = detection.rectangles;
 	auto newEnd = std::remove_if(rectangles.begin(), rectangles.end(), [=](auto & rect) {
-		return rect.y < positionFraction;
+		return rect.y < imageHeight * positionFraction;
 	});
 	rectangles.erase(newEnd, rectangles.end());
 }
