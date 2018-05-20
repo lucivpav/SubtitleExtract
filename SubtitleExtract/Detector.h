@@ -11,7 +11,7 @@ struct DetectionResult {
 class Detector
 {
 public:
-	Detector(int dilationIterations = 9, double minFraction = 0.015, double positionFraction = 0.3); // TODO: maxFraction
+	Detector(int dilationIterations = 9, double minFraction = 0.010, double positionFraction = 0.3); // TODO: maxFraction
 	~Detector();
 
 	DetectionResult Detect(const cv::Mat & image, const std::string & id = "") const;
