@@ -24,6 +24,11 @@ void Extractor::Extract(const std::string & videoFilePath, const std::string & s
 		to = (frameCount / fps) * 1000;
 	}
 
+	std::ofstream subtitleFile(subtitlePath);
+	int subtitleId = 1;
+	std::string lastSubtitle;
+	double timeBegin;
+
 	for (; from < to; from += step)
 	{
 		std::cout << "Position: " << from << " [ms]\n";
@@ -37,7 +42,45 @@ void Extractor::Extract(const std::string & videoFilePath, const std::string & s
 			std::cout << "<nothing extracted>" << std::endl;
 		else
 			std::cout << "Extracted: " << text << "\n\n\n";
+
+		if (lastSubtitle.empty())
+		{
+			lastSubtitle = text;
+			timeBegin = from;
+		}
+		else
+		{
+			if (lastSubtitle != text)
+			{
+				auto timeEnd = from - step;
+				subtitleFile << subtitleId++ << std::endl;
+				subtitleFile << TimeCode(timeBegin) << " --> " << TimeCode(timeEnd) << std::endl;
+				subtitleFile << lastSubtitle;
+				lastSubtitle = text;
+				timeBegin = from;
+			}
+		}
+		// TODO: final subtitle
 	}
+}
+
+std::string Extractor::TimeCode(int milliseconds)
+{
+	auto sec2ms = 1000;
+	auto min2ms = sec2ms * 60;
+	auto hr2ms = min2ms * 60;
+	auto hours = milliseconds / hr2ms;
+	milliseconds -= hours * hr2ms;
+	auto minutes = milliseconds / min2ms;
+	milliseconds -= minutes * min2ms;
+	auto seconds = milliseconds / sec2ms;
+
+	std::ostringstream oss;
+	oss << std::setfill('0') << std::setw(2) << hours << ":";
+	oss << std::setfill('0') << std::setw(2) << minutes << ":";
+	oss << std::setfill('0') << std::setw(2) << seconds << ",";
+	oss << std::setfill('0') << std::setw(3) << milliseconds / 10;
+	return oss.str();
 }
 
 std::string Extractor::ExtractFromImage(const cv::Mat & image, const std::string & id)
