@@ -16,7 +16,6 @@ private:
 	Detector detector;
 	Recognizer recognizer;
 
-	const cv::Rect & MostLikelyRectangle(const std::vector<cv::Rect> & candidates, const cv::Mat & image) const;
 	std::string TimeCode(int milliseconds);
 };
 

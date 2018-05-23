@@ -101,7 +101,7 @@ std::string Extractor::ExtractFromImage(const cv::Mat & image, const std::string
 		return "";
 	}
 
-	const auto & rect = MostLikelyRectangle(rectangles, image);
+	const auto & rect = rectangles[detection.mostLikelyRectangle];
 	auto textImage = cv::Mat(threshImage, rect);
 
 	cv::rectangle(rectsImage, rect, cv::Scalar(255, 0, 255));
@@ -112,17 +112,4 @@ std::string Extractor::ExtractFromImage(const cv::Mat & image, const std::string
 		throw 666;
 
 	return recognizer.Recognize(textImage);
-}
-
-const cv::Rect & Extractor::MostLikelyRectangle(const std::vector<cv::Rect> & candidates, const cv::Mat & image) const
-{
-	std::vector<double> distances;
-	cv::Point2d optimalSubtitleCenter(image.size().width/2, image.size().height*0.9);
-	distances.resize(candidates.size());
-	std::transform(candidates.begin(), candidates.end(), distances.begin(), [&](const cv::Rect & rect) {
-		cv::Point2d actualCenter(rect.x + rect.width/2, rect.y + rect.height/2);
-		return cv::norm(optimalSubtitleCenter - actualCenter);
-	});
-	auto minIdx = std::distance(distances.begin(), std::min_element(distances.begin(), distances.end()));
-	return candidates[minIdx];
 }

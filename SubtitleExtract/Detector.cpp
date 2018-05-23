@@ -3,7 +3,7 @@
 Detector::Detector(int dilationIterations, double minFraction, double positionFraction)
 	:	dilationIterations(dilationIterations),
 		minFraction(minFraction),
-		positionFraction(positionFraction)
+		optimalSubtitleCenter(0.5, 0.9)
 {
 }
 
@@ -39,15 +39,16 @@ DetectionResult Detector::Detect(const cv::Mat & image, const std::string & id) 
 			throw 666;
 	}
 
-	RemoveUnlikelyRectangles(result, image.size().height);
+	RemoveUnlikelyRectangles(result, image);
+	result.mostLikelyRectangle = MostLikelyRectangle(result.rectangles, image);
 
 	return result;
 }
 
-void Detector::RemoveUnlikelyRectangles(DetectionResult & detection, double imageHeight) const
+void Detector::RemoveUnlikelyRectangles(DetectionResult & detection, const cv::Mat & image) const
 {
 	RemoveRectanglesOfUnlikelySize(detection);
-	RemoveRectanglesOfUnlikelyPosition(detection, imageHeight);
+	RemoveRectanglesOfUnlikelyPosition(detection, image);
 }
 
 void Detector::RemoveRectanglesOfUnlikelySize(DetectionResult & detection) const
@@ -60,11 +61,37 @@ void Detector::RemoveRectanglesOfUnlikelySize(DetectionResult & detection) const
 	rectangles.erase(newEnd, rectangles.end());
 }
 
-void Detector::RemoveRectanglesOfUnlikelyPosition(DetectionResult & detection, double imageHeight) const // TODO: extend by supporting subtitles on top too
+void Detector::RemoveRectanglesOfUnlikelyPosition(DetectionResult & detection, const cv::Mat & image) const // TODO: extend by supporting subtitles on top too
 {
 	auto & rectangles = detection.rectangles;
-	auto newEnd = std::remove_if(rectangles.begin(), rectangles.end(), [=](auto & rect) {
-		return rect.y < imageHeight * positionFraction;
+	auto imWidth = image.size().width;
+	auto imHeight = image.size().height;
+	auto optimalCenter = GetExpectedSubtitleLocation(image);
+	auto maxDistance = cv::norm(cv::Point2d(imWidth, imHeight))*0.125;
+
+	auto newEnd = std::remove_if(rectangles.begin(), rectangles.end(), [&](auto & rect) {
+		cv::Point2d actualCenter(rect.x + rect.width/2, rect.y + rect.height/2);
+		auto distance = cv::norm(optimalCenter - actualCenter);
+		return distance > maxDistance;
 	});
 	rectangles.erase(newEnd, rectangles.end());
+}
+
+size_t Detector::MostLikelyRectangle(const std::vector<cv::Rect> & candidates, const cv::Mat & image) const
+{
+	std::vector<double> distances;
+	auto optimalSubtitleCenter = GetExpectedSubtitleLocation(image);
+	distances.resize(candidates.size());
+	std::transform(candidates.begin(), candidates.end(), distances.begin(), [&](const cv::Rect & rect) {
+		cv::Point2d actualCenter(rect.x + rect.width/2, rect.y + rect.height/2);
+		return cv::norm(optimalSubtitleCenter - actualCenter);
+	});
+	return std::distance(distances.begin(), std::min_element(distances.begin(), distances.end()));
+}
+
+cv::Point2d Detector::GetExpectedSubtitleLocation(const cv::Mat & image) const
+{
+	auto imWidth = image.size().width;
+	auto imHeight = image.size().height;
+	return cv::Point2d(imWidth*optimalSubtitleCenter.x, imHeight*optimalSubtitleCenter.y);
 }

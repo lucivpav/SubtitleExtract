@@ -5,6 +5,7 @@
 
 struct DetectionResult {
 	std::vector<cv::Rect> rectangles;
+	size_t mostLikelyRectangle;
 	cv::Mat image;
 };
 
@@ -18,10 +19,12 @@ public:
 private:
 	int dilationIterations;
 	double minFraction;
-	double positionFraction;
+	cv::Point2d optimalSubtitleCenter;
 
-	void RemoveUnlikelyRectangles(DetectionResult & detection, double imageHeight) const;
+	void RemoveUnlikelyRectangles(DetectionResult & detection, const cv::Mat & image) const;
 	void RemoveRectanglesOfUnlikelySize(DetectionResult & detection) const;
-	void RemoveRectanglesOfUnlikelyPosition(DetectionResult & detection, double imageHeight) const;
+	void RemoveRectanglesOfUnlikelyPosition(DetectionResult & detection, const cv::Mat & image) const;
+	size_t MostLikelyRectangle(const std::vector<cv::Rect> & candidates, const cv::Mat & image) const;
+	cv::Point2d GetExpectedSubtitleLocation(const cv::Mat & image) const;
 };
 

@@ -23,7 +23,7 @@ int main(int argc, const char ** argv) {
 
 	Extractor extractor;
 	double from = 240000;
-	double to = 250000;
+	double to = 350000;
 	bool debug = false;
 
 	if ( !debug )
