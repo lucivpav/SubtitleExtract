@@ -90,12 +90,9 @@ std::string Extractor::ExtractFromImage(const cv::Mat & image, const std::string
 	auto & threshImage = detection.image;
 	const auto & rectangles = detection.rectangles;
 	auto rectangleCount = rectangles.size();
-	auto rectsImage = image;
 
 	if (rectangleCount == 0)
 	{
-		if (!cv::imwrite(dir + id + "_rects.png", rectsImage))
-			throw 666;
 		if (!cv::imwrite(dir + id + "_thresh.png", threshImage))
 			throw 666;
 		return "";
@@ -104,10 +101,7 @@ std::string Extractor::ExtractFromImage(const cv::Mat & image, const std::string
 	const auto & rect = rectangles[detection.mostLikelyRectangle];
 	auto textImage = cv::Mat(threshImage, rect);
 
-	cv::rectangle(rectsImage, rect, cv::Scalar(255, 0, 255));
-	if (!cv::imwrite(dir + id + "_rects.png", rectsImage))
-		throw 666;
-
+	cv::rectangle(threshImage, rect, cv::Scalar(255, 0, 255));
 	if (!cv::imwrite(dir + id + "_thresh.png", threshImage))
 		throw 666;
 

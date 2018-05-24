@@ -31,7 +31,7 @@ int main(int argc, const char ** argv) {
 	else
 	{
 		cv::VideoCapture video(file);
-		video.set(cv::CAP_PROP_POS_MSEC, 209000);
+		video.set(cv::CAP_PROP_POS_MSEC, 348500);
 		cv::Mat image;
 		if (!video.read(image))
 			throw 666;

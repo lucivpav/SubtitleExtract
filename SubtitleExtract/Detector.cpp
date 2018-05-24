@@ -2,8 +2,7 @@
 
 Detector::Detector(int dilationIterations, double minFraction, double positionFraction)
 	:	dilationIterations(dilationIterations),
-		minFraction(minFraction),
-		optimalSubtitleCenter(0.5, 0.9)
+		minFraction(minFraction)
 {
 }
 
@@ -13,9 +12,22 @@ Detector::~Detector()
 
 DetectionResult Detector::Detect(const cv::Mat & image, const std::string & id) const
 {
+	auto imWidth = image.size().width;
+	auto imHeight = image.size().height;
+	auto cropX = imWidth * 0.1;
+	auto cropY = imHeight * 0.8;
+	auto cropWidth = imWidth - 2 * cropX;
+	auto cropHeight = imHeight * 0.15;
+	auto crop = cv::Rect(cropX, cropY, cropWidth, cropHeight); // TODO
+	return Detect(image, crop, id);
+}
+
+DetectionResult Detector::Detect(const cv::Mat & image, const cv::Rect & crop, const std::string & id) const
+{
 	DetectionResult result;
-	cv::Mat grayImage, preThreshImage, dilatedImage, threshImage;
-	cv::cvtColor(image, grayImage, cv::COLOR_BGR2GRAY);
+	cv::Mat cropImage, grayImage, preThreshImage, dilatedImage, threshImage;
+	cropImage = cv::Mat(image.clone(), crop);
+	cv::cvtColor(cropImage, grayImage, cv::COLOR_BGR2GRAY);
 	cv::threshold(grayImage, preThreshImage, 245, 255, cv::THRESH_BINARY);
 	cv::bitwise_and(grayImage, grayImage, threshImage, preThreshImage);
 	cv::medianBlur(threshImage, result.image, 3);
@@ -32,23 +44,23 @@ DetectionResult Detector::Detect(const cv::Mat & image, const std::string & id) 
 	if (id != "")
 	{
 		const std::string dir = "extractions/";
-		auto rectsImage = image.clone();
+		auto rectsImage = cropImage.clone();
 		for (auto rect : result.rectangles)
 			cv::rectangle(rectsImage, rect, cv::Scalar(255, 0, 255));
 		if (!cv::imwrite(dir + id + "_prefilter_rects.png", rectsImage))
 			throw 666;
 	}
 
-	RemoveUnlikelyRectangles(result, image);
-	result.mostLikelyRectangle = MostLikelyRectangle(result.rectangles, image);
+	RemoveUnlikelyRectangles(result, crop);
+	result.mostLikelyRectangle = MostLikelyRectangle(result.rectangles, crop);
 
 	return result;
 }
 
-void Detector::RemoveUnlikelyRectangles(DetectionResult & detection, const cv::Mat & image) const
+void Detector::RemoveUnlikelyRectangles(DetectionResult & detection, const cv::Rect & crop) const
 {
 	RemoveRectanglesOfUnlikelySize(detection);
-	RemoveRectanglesOfUnlikelyPosition(detection, image);
+	RemoveRectanglesOfUnlikelyPosition(detection, crop);
 }
 
 void Detector::RemoveRectanglesOfUnlikelySize(DetectionResult & detection) const
@@ -61,26 +73,24 @@ void Detector::RemoveRectanglesOfUnlikelySize(DetectionResult & detection) const
 	rectangles.erase(newEnd, rectangles.end());
 }
 
-void Detector::RemoveRectanglesOfUnlikelyPosition(DetectionResult & detection, const cv::Mat & image) const // TODO: extend by supporting subtitles on top too
+void Detector::RemoveRectanglesOfUnlikelyPosition(DetectionResult & detection, const cv::Rect & crop) const // TODO: extend by supporting subtitles on top too
 {
 	auto & rectangles = detection.rectangles;
-	auto imWidth = image.size().width;
-	auto imHeight = image.size().height;
-	auto optimalCenter = GetExpectedSubtitleLocation(image);
-	auto maxDistance = cv::norm(cv::Point2d(imWidth, imHeight))*0.125;
+	auto optimalCenter = GetExpectedSubtitleLocation(crop);
+	auto maxDistance = cv::norm(cv::Point2d(crop.width, crop.height))*0.05;
 
 	auto newEnd = std::remove_if(rectangles.begin(), rectangles.end(), [&](auto & rect) {
-		cv::Point2d actualCenter(rect.x + rect.width/2, rect.y + rect.height/2);
+		cv::Point2d actualCenter(rect.x + rect.width / 2, rect.y + rect.height / 2);
 		auto distance = cv::norm(optimalCenter - actualCenter);
 		return distance > maxDistance;
 	});
 	rectangles.erase(newEnd, rectangles.end());
 }
 
-size_t Detector::MostLikelyRectangle(const std::vector<cv::Rect> & candidates, const cv::Mat & image) const
+size_t Detector::MostLikelyRectangle(const std::vector<cv::Rect> & candidates, const cv::Rect & crop) const
 {
 	std::vector<double> distances;
-	auto optimalSubtitleCenter = GetExpectedSubtitleLocation(image);
+	auto optimalSubtitleCenter = GetExpectedSubtitleLocation(crop);
 	distances.resize(candidates.size());
 	std::transform(candidates.begin(), candidates.end(), distances.begin(), [&](const cv::Rect & rect) {
 		cv::Point2d actualCenter(rect.x + rect.width/2, rect.y + rect.height/2);
@@ -89,9 +99,7 @@ size_t Detector::MostLikelyRectangle(const std::vector<cv::Rect> & candidates, c
 	return std::distance(distances.begin(), std::min_element(distances.begin(), distances.end()));
 }
 
-cv::Point2d Detector::GetExpectedSubtitleLocation(const cv::Mat & image) const
+cv::Point2d Detector::GetExpectedSubtitleLocation(const cv::Rect & crop) const
 {
-	auto imWidth = image.size().width;
-	auto imHeight = image.size().height;
-	return cv::Point2d(imWidth*optimalSubtitleCenter.x, imHeight*optimalSubtitleCenter.y);
+	return cv::Point2d(crop.width/2, crop.height/2);
 }
