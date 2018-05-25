@@ -102,7 +102,7 @@ std::string Extractor::ExtractFromImage(const cv::Mat & image, const std::string
 	std::string text = "";
 	for (const auto & rect : rectangles)
 	{
-		auto textImage = cv::Mat(threshImage, rect);
+		auto textImage = cv::Mat(threshImage, rect).clone();
 		cv::rectangle(threshImage, rect, cv::Scalar(255, 0, 255));
 		if (!text.empty())
 			text += "\n";

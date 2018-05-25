@@ -24,7 +24,7 @@ int main(int argc, const char ** argv) {
 	Extractor extractor;
 	double from = 240000;
 	double to = 350000;
-	bool debug = true;
+	bool debug = false;
 
 	if ( !debug )
 		extractor.Extract(file, "subtitles.srt", from, to);
