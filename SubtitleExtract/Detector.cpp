@@ -25,21 +25,29 @@ DetectionResult Detector::Detect(const cv::Mat & image, const std::string & id) 
 DetectionResult Detector::Detect(const cv::Mat & image, const cv::Rect & crop, const std::string & id) const
 {
 	DetectionResult result;
-	cv::Mat cropImage, grayImage, preThreshImage, dilatedImage, threshImage;
+	cv::Mat cropImage, grayImage, preThreshImage, morphedImage, threshImage;
 	cropImage = cv::Mat(image.clone(), crop);
 	cv::cvtColor(cropImage, grayImage, cv::COLOR_BGR2GRAY);
 	cv::threshold(grayImage, preThreshImage, 245, 255, cv::THRESH_BINARY);
 	cv::bitwise_and(grayImage, grayImage, threshImage, preThreshImage);
 	cv::medianBlur(threshImage, result.image, 3);
 
-	auto kernel = cv::getStructuringElement(cv::MORPH_CROSS, cv::Size(3, 3));
-	cv::dilate(result.image, dilatedImage, kernel, cv::Point(-1, -1), dilationIterations);
+	auto kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(3, 1));
+	cv::dilate(result.image, morphedImage, kernel, cv::Point(-1, -1), dilationIterations);
 
 	std::vector<std::vector<cv::Point>> contours;
-	cv::findContours(dilatedImage, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_NONE);
+	cv::findContours(morphedImage, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_NONE);
 
 	for (auto contour : contours)
 		result.rectangles.push_back(cv::boundingRect(contour));
+
+	// make the rectangles little taller
+	auto extraY = crop.size().height*0.05;
+	for (auto & rect : result.rectangles)
+	{
+		rect.y -= extraY;
+		rect.height += extraY * 2;
+	}
 
 	if (id != "")
 	{
@@ -52,7 +60,10 @@ DetectionResult Detector::Detect(const cv::Mat & image, const cv::Rect & crop, c
 	}
 
 	RemoveUnlikelyRectangles(result, crop);
-	result.mostLikelyRectangle = MostLikelyRectangle(result.rectangles, crop);
+
+	std::sort(result.rectangles.begin(), result.rectangles.end(), [](const auto & r1, const auto & r2) {
+		return r1.y < r2.y;
+	});
 
 	return result;
 }
@@ -85,18 +96,6 @@ void Detector::RemoveRectanglesOfUnlikelyPosition(DetectionResult & detection, c
 		return distance > maxDistance;
 	});
 	rectangles.erase(newEnd, rectangles.end());
-}
-
-size_t Detector::MostLikelyRectangle(const std::vector<cv::Rect> & candidates, const cv::Rect & crop) const
-{
-	std::vector<double> distances;
-	auto optimalSubtitleCenter = GetExpectedSubtitleLocation(crop);
-	distances.resize(candidates.size());
-	std::transform(candidates.begin(), candidates.end(), distances.begin(), [&](const cv::Rect & rect) {
-		cv::Point2d actualCenter(rect.x + rect.width/2, rect.y + rect.height/2);
-		return cv::norm(optimalSubtitleCenter - actualCenter);
-	});
-	return std::distance(distances.begin(), std::min_element(distances.begin(), distances.end()));
 }
 
 cv::Point2d Detector::GetExpectedSubtitleLocation(const cv::Rect & crop) const

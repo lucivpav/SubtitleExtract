@@ -5,14 +5,13 @@
 
 struct DetectionResult {
 	std::vector<cv::Rect> rectangles;
-	size_t mostLikelyRectangle;
 	cv::Mat image;
 };
 
 class Detector
 {
 public:
-	Detector(int dilationIterations = 9, double minFraction = 0.005, double positionFraction = 0.3); // TODO: maxFraction
+	Detector(int dilationIterations = 9, double minFraction = 0.007, double positionFraction = 0.3); // TODO: maxFraction
 	~Detector();
 
 	DetectionResult Detect(const cv::Mat & image, const cv::Rect & crop, const std::string & id = "") const;
@@ -24,7 +23,6 @@ private:
 	void RemoveUnlikelyRectangles(DetectionResult & detection, const cv::Rect & crop) const;
 	void RemoveRectanglesOfUnlikelySize(DetectionResult & detection) const;
 	void RemoveRectanglesOfUnlikelyPosition(DetectionResult & detection, const cv::Rect & crop) const;
-	size_t MostLikelyRectangle(const std::vector<cv::Rect> & candidates, const cv::Rect & crop) const;
 	cv::Point2d GetExpectedSubtitleLocation(const cv::Rect & crop) const;
 };
 

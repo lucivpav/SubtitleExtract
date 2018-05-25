@@ -56,6 +56,7 @@ void Extractor::Extract(const std::string & videoFilePath, const std::string & s
 				subtitleFile << subtitleId++ << std::endl;
 				subtitleFile << TimeCode(timeBegin) << " --> " << TimeCode(timeEnd) << std::endl;
 				subtitleFile << lastSubtitle;
+				subtitleFile << std::endl << std::endl;
 				lastSubtitle = text;
 				timeBegin = from;
 			}
@@ -98,12 +99,18 @@ std::string Extractor::ExtractFromImage(const cv::Mat & image, const std::string
 		return "";
 	}
 
-	const auto & rect = rectangles[detection.mostLikelyRectangle];
-	auto textImage = cv::Mat(threshImage, rect);
-
-	cv::rectangle(threshImage, rect, cv::Scalar(255, 0, 255));
+	std::string text = "";
+	for (const auto & rect : rectangles)
+	{
+		auto textImage = cv::Mat(threshImage, rect);
+		cv::rectangle(threshImage, rect, cv::Scalar(255, 0, 255));
+		if (!text.empty())
+			text += "\n";
+		text += recognizer.Recognize(textImage);
+	}
+	
 	if (!cv::imwrite(dir + id + "_thresh.png", threshImage))
 		throw 666;
 
-	return recognizer.Recognize(textImage);
+	return text;
 }
