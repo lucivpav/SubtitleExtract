@@ -32,7 +32,8 @@ void Extractor::Extract(const std::string & videoFilePath, const std::string & s
 	for (; from < to; from += step)
 	{
 		std::cout << "Position: " << from << " [ms]\n";
-		video.set(cv::CAP_PROP_POS_MSEC, from);
+		if (!video.set(cv::CAP_PROP_POS_MSEC, from))
+			throw 666;
 		cv::Mat image;
 		if (!video.read(image))
 			throw 666;
