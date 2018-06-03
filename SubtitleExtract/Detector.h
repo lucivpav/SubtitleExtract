@@ -11,7 +11,7 @@ struct DetectionResult {
 class Detector
 {
 public:
-	Detector(int dilationIterations = 9, double minFraction = 0.007, double positionFraction = 0.3); // TODO: maxFraction
+	Detector(int dilationIterations = 9, double minFraction = 0.007); // TODO: maxFraction
 	~Detector();
 
 	DetectionResult Detect(const cv::Mat & image, const cv::Rect & crop, const std::string & id = "") const;
@@ -24,5 +24,6 @@ private:
 	void RemoveRectanglesOfUnlikelySize(DetectionResult & detection) const;
 	void RemoveRectanglesOfUnlikelyPosition(DetectionResult & detection, const cv::Rect & crop) const;
 	cv::Point2d GetExpectedSubtitleLocation(const cv::Rect & crop) const;
+	cv::Mat ThresholdImage(const cv::Mat & image) const;
 };
 

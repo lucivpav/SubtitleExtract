@@ -1,6 +1,6 @@
 #include "Detector.h"
 
-Detector::Detector(int dilationIterations, double minFraction, double positionFraction)
+Detector::Detector(int dilationIterations, double minFraction)
 	:	dilationIterations(dilationIterations),
 		minFraction(minFraction)
 {
@@ -15,9 +15,9 @@ DetectionResult Detector::Detect(const cv::Mat & image, const std::string & id) 
 	auto imWidth = image.size().width;
 	auto imHeight = image.size().height;
 	auto cropX = imWidth * 0.1;
-	auto cropY = imHeight * 0.8;
+	auto cropY = imHeight * 0.87;
 	auto cropWidth = imWidth - 2 * cropX;
-	auto cropHeight = imHeight * 0.15;
+	auto cropHeight = imHeight * 0.09;
 	auto crop = cv::Rect(cropX, cropY, cropWidth, cropHeight); // TODO
 	return Detect(image, crop, id);
 }
@@ -25,18 +25,29 @@ DetectionResult Detector::Detect(const cv::Mat & image, const std::string & id) 
 DetectionResult Detector::Detect(const cv::Mat & image, const cv::Rect & crop, const std::string & id) const
 {
 	DetectionResult result;
-	cv::Mat cropImage, grayImage, preThreshImage, morphedImage, threshImage;
+	cv::Mat cropImage, edgeImage, morphedImage, threshImage, focusedImage, focusedDilatedImage;
 	cropImage = cv::Mat(image.clone(), crop);
-	cv::cvtColor(cropImage, grayImage, cv::COLOR_BGR2GRAY);
-	cv::threshold(grayImage, preThreshImage, 245, 255, cv::THRESH_BINARY);
-	cv::bitwise_and(grayImage, grayImage, threshImage, preThreshImage);
-	cv::medianBlur(threshImage, result.image, 3);
+	cv::Canny(cropImage, edgeImage, 10, 90);
 
-	auto kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(3, 1));
-	cv::dilate(result.image, morphedImage, kernel, cv::Point(-1, -1), dilationIterations);
+	const std::string dir = "extractions/";
+	cv::imwrite(dir + id + "_edges.png", edgeImage);
+	
+	auto kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(2, 2));
+	cv::dilate(edgeImage, morphedImage, kernel, cv::Point(-1, -1), dilationIterations);
+	threshImage = ThresholdImage(cropImage);
+	cv::bitwise_and(morphedImage, threshImage, focusedImage);
+
+	// dilate again
+	kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(4, 1));
+	cv::dilate(focusedImage, focusedDilatedImage, kernel, cv::Point(-1, -1), dilationIterations);
+
+	cv::imwrite(dir + id + "_dilated.png", morphedImage);
+	cv::imwrite(dir + id + "_thresh.png", threshImage);
+	cv::imwrite(dir + id + "_focusedImage.png", focusedImage);
+	cv::imwrite(dir + id + "_focusedDilatedImage.png", focusedDilatedImage);
 
 	std::vector<std::vector<cv::Point>> contours;
-	cv::findContours(morphedImage, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_NONE);
+	cv::findContours(focusedDilatedImage, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_NONE);
 
 	for (auto contour : contours)
 		result.rectangles.push_back(cv::boundingRect(contour));
@@ -45,13 +56,17 @@ DetectionResult Detector::Detect(const cv::Mat & image, const cv::Rect & crop, c
 	auto extraY = crop.size().height*0.05;
 	for (auto & rect : result.rectangles)
 	{
-		rect.y -= extraY;
-		rect.height += extraY * 2;
+		auto rectY = rect.y - extraY;
+		auto rectHeight = rect.height + extraY * 2;
+		if (rectY >= 0 && rectY + rectHeight < crop.height)
+		{
+			rect.y = rectY;
+			rect.height = rectHeight;
+		}
 	}
 
 	if (id != "")
 	{
-		const std::string dir = "extractions/";
 		auto rectsImage = cropImage.clone();
 		for (auto rect : result.rectangles)
 			cv::rectangle(rectsImage, rect, cv::Scalar(255, 0, 255));
@@ -61,11 +76,34 @@ DetectionResult Detector::Detect(const cv::Mat & image, const cv::Rect & crop, c
 
 	RemoveUnlikelyRectangles(result, crop);
 
+	result.image = ThresholdImage(cropImage);
+
+	// make sure there are some vertical bezels. this improves tesseract's accuracy
+	// TODO: remove?
+	auto bezelH = 10;
+	auto bezel = cv::Mat::zeros(bezelH, result.image.cols, result.image.type());
+	cv::Mat bezelImage;
+	std::vector<cv::Mat> arraysToMerge = {bezel, result.image, bezel};
+	cv::vconcat(arraysToMerge, bezelImage);
+	result.image = bezelImage;
+	for (auto & rect : result.rectangles)
+		rect.height += 2*bezelH;
+		
+
 	std::sort(result.rectangles.begin(), result.rectangles.end(), [](const auto & r1, const auto & r2) {
 		return r1.y < r2.y;
 	});
 
 	return result;
+}
+
+cv::Mat Detector::ThresholdImage(const cv::Mat & image) const
+{
+	cv::Mat grayImage, preThreshImage, threshImage;
+	cv::cvtColor(image, grayImage, cv::COLOR_BGR2GRAY);
+	cv::threshold(grayImage, threshImage, 200, 255, cv::THRESH_BINARY);
+	//cv::bitwise_and(grayImage, grayImage, threshImage, preThreshImage);
+	return threshImage;
 }
 
 void Detector::RemoveUnlikelyRectangles(DetectionResult & detection, const cv::Rect & crop) const

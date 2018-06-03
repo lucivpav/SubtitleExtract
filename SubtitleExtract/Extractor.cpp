@@ -2,6 +2,8 @@
 
 #include <opencv2/opencv.hpp>
 
+#include <fstream>
+
 Extractor::Extractor()
 	:detector()
 {
@@ -101,12 +103,14 @@ std::string Extractor::ExtractFromImage(const cv::Mat & image, const std::string
 	}
 
 	std::string text = "";
+	int i = 1;
 	for (const auto & rect : rectangles)
 	{
 		auto textImage = cv::Mat(threshImage, rect).clone();
 		cv::rectangle(threshImage, rect, cv::Scalar(255, 0, 255));
 		if (!text.empty())
 			text += "\n";
+		cv::imwrite(dir + id + "_feed" + std::to_string(i) + ".png", textImage);
 		text += recognizer.Recognize(textImage);
 	}
 	

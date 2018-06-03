@@ -24,20 +24,23 @@ int main(int argc, const char ** argv) {
 	Extractor extractor;
 	double from = 240000;
 	double to = 350000;
-	bool debug = false;
+	bool debug = true;
 
 	if ( !debug )
 		extractor.Extract(file, "subtitles.srt", from, to);
 	else
 	{
+		std::cout << "opening video " << file << std::endl;
 		cv::VideoCapture video(file);
-		video.set(cv::CAP_PROP_POS_MSEC, 302000);
+		video.set(cv::CAP_PROP_POS_MSEC, 240000);
 		cv::Mat image;
 		if (!video.read(image))
+		{
+			std::cerr << "cannot read image from video.\n";
 			throw 666;
+		}
 		std::cout << "extracted: " << extractor.ExtractFromImage(image, "bla") << std::endl;
 	}
 
-	std::cin.get();
 	return 0;
 }
